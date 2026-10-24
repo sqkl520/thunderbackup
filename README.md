@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE)](https://learn.microsoft.com/powershell/)
 [![Runtime network calls](https://img.shields.io/badge/runtime%20network%20calls-0-lightgrey)](#安全与数据流)
-[![Lines](https://img.shields.io/badge/script-12%2C060%20lines-c2410c)](#仓库结构)
+[![Lines](https://img.shields.io/badge/script%20length-12%2C060%20lines-c2410c)](#仓库结构)
 
 <br>
 
