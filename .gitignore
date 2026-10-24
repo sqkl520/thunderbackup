@@ -1,0 +1,26 @@
+# Store output: the backup library itself must never be committed.
+# IMPORTANT: this pattern is deliberately NOT 'ThunderBackup/' as a bare directory name.
+# Git on Windows is case-insensitive, so a bare 'ThunderBackup/' also matched the shipped
+# directory 'thunderbackup/' and silenced all 21 package files (measured: `git check-ignore -v
+# thunderbackup/lib/criteria.ps1` -> `.gitignore:3:ThunderBackup/`). Anchor it to the repo root
+# and require the store markers instead:
+/StoreRoot/
+/_store/
+*.log
+skipped.log
+status.json
+
+# Local config carrying a real StoreRoot / real download paths.
+thunderbackup.config.local.ps1
+/config.local.ps1
+
+# Windows / editor noise
+Thumbs.db
+Desktop.ini
+*.swp
+.vscode/
+.idea/
+
+# Publish checklist (run before every push; both must print 0 / empty):
+#   git check-ignore -v $(git ls-files)                  # no tracked file may be ignored
+#   git ls-files | Measure-Object                        # 24 files: 21 package + README + LICENSE + .gitignore
