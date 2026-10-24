@@ -1007,7 +1007,7 @@ function Get-TbsmFileId {
        copied to a new name gets a NEW FileId (fid-check row 3, True), so a copy is already a
      * VolumeSerial is mandatory because FileId is unique only WITHIN A VOLUME (Lead's
        one without the volume serial. Measured as genuinely scoped, not decorative: C:\Windows
-        gives volumeSerial=9c8468a084687ea0, D:\ gives 19497a5f8026d083.
+        gives volumeSerial=0000000000000001, D:\ gives 0000000000000002.
 
     HONEST LIMITS of this key (Lead's rulings 1-3, all restated here so nobody "discovers"
     them later):

@@ -141,7 +141,7 @@ function Get-FileHole {
         hole > 0  =>  the file is NOT fully allocated => definitely NOT complete.
         hole <= 0 =>  allocation is complete. Says NOTHING about content.
 
-      Why absolute beats relative (measured 2026-10-22 on C:\迅雷下载, 59 in-progress
+      Why absolute beats relative (measured 2026-10-22 on C:\<download-root>, 59 in-progress
       .xltd + 6 finished files, using the fast instrument below, no admin):
 
         hole>0            catches 59/59 incomplete, false-alarms 0/6 finished
@@ -544,8 +544,8 @@ function Get-FileHolder {
         3221226356 when array marshalling ran past the buffer. **
       The working surface is raw bytes: allocate a block, zero it, let RmGetList fill it,
       and ReadInt32 / PtrToStringUni at fixed offsets. Verified on this machine against
-      Thunder's own files: pid=11184 name=[迅雷下载引擎] (= DownloadSDKServer.exe) on the
-      .xltd files, pid=32596 name=[迅雷] (= Thunder.exe) on TaskDb.dat.
+      Thunder's own files: pid=<pid> name=[<engine>] (= DownloadSDKServer.exe) on the
+      .xltd files, pid=<pid> name=[迅雷] (= Thunder.exe) on TaskDb.dat.
 
       FUNCTIONAL BOUNDARY -- fixed by the criteria spec, not by taste:
         * Call it ONLY from on-demand diagnostics (doctor / verbose attribution), after a
@@ -584,7 +584,7 @@ function Get-FileHolder {
       isolation matrix):
         * A struct whose Marshal.SizeOf is EXACTLY 668 does decode correctly at needed=1
           (int pid + int ftLo + int ftHi + ByValTStr(256) + ByValTStr(64) + 4x uint
-          => 668; got back pid=54640 name=[Windows PowerShell] type=1000, clean).
+          => 668; got back pid=<pid> name=[Windows PowerShell] type=1000, clean).
         * The recipe written in 02-design\criteria-spec.md line 585 cannot even be sized on
           this box: `[MarshalAs(UnmanagedType.U4)] bool` sitting next to a `ByValTStr` makes
           Marshal.SizeOf THROW "cannot be marshaled as an unmanaged structure". Isolated:

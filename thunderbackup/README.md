@@ -88,7 +88,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1 -StoreRoot E:\Th
   触发器是"登录时"，任务名默认 `ThunderBackup`（`-TaskName` 可改）。
 - `-SkipDoctor`：跳过装完之后的自检（不建议）。默认收尾会用装好的那份重新跑一次 `-Cmd doctor -SkipProbes`，
   非 0 就直接把安装也判为非 0——**装完不自我验证的安装不叫装完**。
-- 装之前有两道拒绝：`-InstallDir` 或 `-StoreRoot` 落在迅雷安装目录 / 迅雷下载根目录里 ⇒ 直接 `throw`，不写任何东西。
+- 装之前有两道拒绝：`-InstallDir` 或 `-StoreRoot` 落在迅雷安装目录 / <download-root>根目录里 ⇒ 直接 `throw`，不写任何东西。
 
 装完请打开 `%LOCALAPPDATA%\ThunderBackup\thunderbackup.config.ps1`（工具目录里的那份）检查两件事：`StoreRoot` 和 `WatchDirs`。
 这份模板每个键都写了"填错会怎样"。
@@ -571,7 +571,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build-check.ps1 -SelfTest
   门 `tests\t-rename-witness.ps1`（开发用，不随包分发）四条夹具 + 反向对照实测：
   `FIXTURE 1 witnesses=1`、`REVERSE CONTROL witnesses=5`、`FIXTURE 2（尺寸不同）witnesses=0 near-miss=1`、
   `FIXTURE 3（终稿上轮就在）witnesses=0`、`FIXTURE 4（两次独立改名）witnesses=2` ⇒ `WITNESS PASS fail=0`。
-  **只读普查（2026-10-23，未写入任何文件）**：`C:\迅雷下载` 扫到 125 个文件、`threw=False`、其中 **59 个 `.xltd/.td`**；
+  **只读普查（2026-10-23，未写入任何文件）**：`C:\<download-root>` 扫到 125 个文件、`threw=False`、其中 **59 个 `.xltd/.td`**；
   合并工作树后按长度分组 **numerator=59 组 / denominator=1,280 个文件**，最大组 **192 个文件同为 262,144 B**，
   **937 个文件落在某个同长度组里**；按"名字派生 + 同长度"匹配的候选 **0 条（分母 59）**。
   ⇒ 结论：**"目录里有同长度文件"在真实树上不是边角情况而是常态**，旧规则的放大倍数因此很大；
@@ -587,7 +587,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build-check.ps1 -SelfTest
   `03-src\cli\smoke_test.ps1`。`win32io.ps1` 里"文件名进 `Invoke-Expression`"那条**不是现存缺陷**——
   `:387`/`:394` 是记录修复过程的**注释**，活代码走调用算符传参；相应的 payload 夹具从"必修"
   **降级为防回归**。
-- **L-48 · `AutoDiscover` / `-NoAutoDiscovery` 是出货能力，不是测试旗标。** Thunder 的自动发现会把**它自己声明的下载根**纳入*拷贝集*——这是设计行为，也正是它的危险面：一次带自动发现的 `once` 在实测中把 6 个真实用户安装包（约 1.77 GB，来自 `C:\迅雷下载`）复制进了临时库并写下 `heads`（用户数据只读，未回写）。三条披露并列：`SeRestorePrivilege` 穿 DAC、`-Config` 文件按代码执行、自动发现扩大拷贝集。设了 `AutoDiscover = $false` 或加了 `-NoAutoDiscovery` 之后，发现仍会**只读地跑一次**，用来回答 `doctor`/`status` 新增的那行告警 `LIVE-Thunder-ROOT-IN-WATCHSET`（告警，不阻断）：它点名 watch 集里与 Thunder 下载根重合的目录。测试后忘记改回配置的人，第一次会在报告里看见它，而不是在磁盘上。
+- **L-48 · `AutoDiscover` / `-NoAutoDiscovery` 是出货能力，不是测试旗标。** Thunder 的自动发现会把**它自己声明的下载根**纳入*拷贝集*——这是设计行为，也正是它的危险面：一次带自动发现的 `once` 在实测中把 6 个真实用户安装包（约 1.77 GB，来自 `C:\<download-root>`）复制进了临时库并写下 `heads`（用户数据只读，未回写）。三条披露并列：`SeRestorePrivilege` 穿 DAC、`-Config` 文件按代码执行、自动发现扩大拷贝集。设了 `AutoDiscover = $false` 或加了 `-NoAutoDiscovery` 之后，发现仍会**只读地跑一次**，用来回答 `doctor`/`status` 新增的那行告警 `LIVE-Thunder-ROOT-IN-WATCHSET`（告警，不阻断）：它点名 watch 集里与 Thunder 下载根重合的目录。测试后忘记改回配置的人，第一次会在报告里看见它，而不是在磁盘上。
 - **L-49 · 跳过目录的比较只剩一个原语：`Test-TbSkipHit`。** 规则：键永远以分隔符结尾（所以 `...\云盘缓存\` 吞不掉 `...\云盘缓存2\`）；比较用 `OrdinalIgnoreCase`（文件系统本身大小写不敏感，ordinal 比较会让"排除某目录"看起来配好了其实没生效）；`\\?\` 与 `\\.\` 装饰两侧都剥掉；**空输入 throw，而不是返回看着安全的 `$false`**。大小写解析不出来时不再假装归一化过，而是显式打 `CASING-UNKNOWN …`（`Get-TbSkipKeys` 的 `Casing` 三态：`resolved` / `identical` / `CASING-UNKNOWN`）并降级为大小写不敏感。**仍未闭合**：大小写欠匹配的门（`tests\t-skipdir-semantics.ps1`）本轮仍有 FAIL，见 L-50；过匹配已闭合，由该门的 PASS 钉住。
 - **L-50 · 同一个目录有两种拼写，而 `DirectoryInfo.FullName` 不是磁盘拼写的证据。** `%TEMP%` 交出来的是 `C:\Users\EXAMPL-1\...`，枚举交出来的是 `C:\Users\example\...`；即便大小写不敏感，这两种前缀之间也**不互相前缀匹配**。所以负分支（"这个文件不该被跳过"）会把两侧再解析成文件系统报告的长名重试一次（`Get-TbLongForm`，带缓存；正分支不付任何代价）。本条同时记录一次**误证**：`New-Object IO.DirectoryInfo('C:\Users\EXAMPL-1').FullName` 打印出长名，看上去像"读盘拿到了长名"，实际它只做路径规范化、**不要求路径存在**——拿它当证据，就是又把自己的仪器输出当成了被测物的事实。
 - **L-51 · `tools\add-bom.ps1` 进包，但把自己限制成只会前插 3 字节。** 两条自证内建在工具里，而不是写在人心里：① 每次写入前先算"字节差恰为 3"与"剥掉前 3 字节的哈希 == 写入前的哈希"，任一不成立就 `REFUSED` 且**不落盘**，成立才打印 `before=… after=… strip==before=True`；② **拒绝处理 `.md`**——BOM 会让 README、审计报告、许可声明的全长哈希不再等于被引用的值，而那些哈希就是证据本身（今晚两份 `.md` 加了 BOM 又撤掉，代价就记在这里）。它进包的理由很直白：整晚 BOM 被剥了至少 5 次，而它是唯一的修复工具。

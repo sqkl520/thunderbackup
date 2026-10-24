@@ -30,7 +30,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\telemetry_audit.ps1 -K
 参数：`-PollMs 200`（标称采样间隔，实测见下）、`-GraceCycles 8`、`-TreeWalkEveryNCycles 3`、
 `-ModuleSampleEveryNCycles 5`、`-MaxRunSeconds 240`、`-IdleControlSeconds 12`、
 `-CompareRoot <目录>`（版本来源对比）、`-StaticOnly`、`-KeepWorkRoot`、`-WideOutput`。
-夹具、副本、存储全部落在 `%TEMP%`；**不读也不写 `D:\Thunder` 与 `C:\迅雷下载`**（见 `[F]` 节与限制）。
+夹具、副本、存储全部落在 `%TEMP%`；**不读也不写 `D:\Thunder` 与 `C:\<download-root>`**（见 `[F]` 节与限制）。
 
 ---
 
@@ -278,15 +278,15 @@ TEARDOWN  监听器关闭后端口 11242 上残留行：0（期望 0 —— 只�
 UDP LEG   instrument=Get-NetUDPEndpoint ; 归属到审计树的已绑 UDP 端点=0 ;
           netstat -ano 兜底实测：表内 145 个 UDP 端点，0 个属于被审计 pid   （一次性 sendto() 不留行：见限制）
 DNS LEG   实测 before / after：缓存条目 649 -> 718 ;
-          命中 thunder|xltd|xunlei|backup|telemetry|audit 的名字：jsq.xunlei.com, rcv-downloadlib-hub.xunlei.com,
-          tpstelemetry.tencent.com, sl-canary-m.xunlei.com, conf-m-ssl.xunlei.com, rcv-xldc.xunlei.com, api-pan.xunlei.com
+          命中 thunder|xltd|xunlei|backup|telemetry|audit 的名字：<redacted-host>, <redacted-host>,
+          <redacted-host>, <redacted-host>, <redacted-host>, <redacted-host>, <redacted-host>
           （系统级缓存，无法按 pid 归属：只是一个佐证证人）
 VERDICT   MUST-CATCH=PASS: this detector saw a real outbound call made by product code, attributed it, and let it go
 child exit=0  listener on 127.0.0.1:11242  accepted=1  attributed TCP rows=3  on the injected port=2  cycles=14
 ```
 
-**DNS 腿必须怎么读**：这台机器上装着真的迅雷，`649 → 718` 与那一串 `*.xunlei.com` /
-`tpstelemetry.tencent.com` 是**整机缓存**里的东西，跨进程、跨时间，**不能归因于被审计的包**，
+**DNS 腿必须怎么读**：这台机器上装着真的迅雷，`649 → 718` 与那一串 `<redacted-host>` /
+`<redacted-host>` 是**整机缓存**里的东西，跨进程、跨时间，**不能归因于被审计的包**，
 也**不能反过来当作"包在发遥测"的证据**。审计能说的只有：在被审计进程树的窗口内没有连接行，
 而这一腿的作用是"如果包真的解析了这些域名，这里的名字数量/内容会变化，并且它可测"。
 这条腿的价值是仪器性（649→718 证明它读到了真数据），不是无罪证明。
@@ -379,9 +379,9 @@ EXIT CODE                                : 6
    （本次确实抓到过 `certutil.exe`/`csc.exe` 这样的子进程，但它们的模块清单已读不到，报 NOT MEASURED）。
    每个窗口的"未归属新增行"计数（379/363/371/382/393/374）是这条的安全网，公开报告而不是隐藏。
 6. **不能证明包在真实迅雷数据上无遥测。** 动态负载跑在打断路径发现的临时副本 + 765,952 B 合成树；
-   真实下载目录没有被枚举、没有被拷贝（这是刻意的，避免动 `D:\Thunder` / `C:\迅雷下载`）。
+   真实下载目录没有被枚举、没有被拷贝（这是刻意的，避免动 `D:\Thunder` / `C:\<download-root>`）。
    `install.ps1` 的计划任务注册路径（`Register-ScheduledTask`）**没有被动态执行过**，只有静态命中。
-7. **不能证明"这台机器没有遥测"。** DNS 缓存里的 `*.xunlei.com` / `tpstelemetry.tencent.com`
+7. **不能证明"这台机器没有遥测"。** DNS 缓存里的 `<redacted-host>` / `<redacted-host>`
    属于整机；整机在测量期间还有 2,262 条其它进程的新 TCP 行。本审计的主张范围只是"被审计进程树在这些窗口内没有连接行"。
 8. **只测了这份字节、这台机器、这一次时间。** `dist\lib\criteria.ps1` 已落后 `02-design` 4,250 B；
    包重建后本文件的每一条行号都要重核。
@@ -501,7 +501,7 @@ EXIT CODE                                : 6
       HOLDER    owning pid(s) resolved: 13668=powershell.exe [root of the audited tree = the injected child] ; unresolved=0
       TEARDOWN  rows still on port 11242 after the listener was closed: 0 (0 expected -- a detector that only ever accumulates cannot report absence)
       UDP LEG   instrument=Get-NetUDPEndpoint ; attributed bound UDP endpoints=0 ; measured snapshot via netstat -ano: 145 UDP endpoint(s) in the netstat table, 0 owned by an audited pid   (a one-shot sendto() still leaves no row: see LIMITATIONS)
-      DNS LEG   measured before / measured after: cache entries 649 -> 718 ; names matching thunder|xltd|xunlei|backup|telemetry|audit: jsq.xunlei.com, rcv-downloadlib-hub.xunlei.com, tpstelemetry.tencent.com, sl-canary-m.xunlei.com, conf-m-ssl.xunlei.com, rcv-xldc.xunlei.com, api-pan.xunlei.com
+      DNS LEG   measured before / measured after: cache entries 649 -> 718 ; names matching thunder|xltd|xunlei|backup|telemetry|audit: <redacted-host>, <redacted-host>, <redacted-host>, <redacted-host>, <redacted-host>, <redacted-host>, <redacted-host>
       VERDICT   MUST-CATCH=PASS: this detector saw a real outbound call made by product code, attributed it, and let it go
       child exit=0  listener on 127.0.0.1:11242  accepted=1  attributed TCP rows=3  of them on the injected port=2  cycles=14
 
